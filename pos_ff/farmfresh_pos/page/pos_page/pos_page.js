@@ -319,11 +319,20 @@ frappe.pages['pos_page'].on_page_load = function(wrapper) {
         if (cust_search_box.length) {
             frappe.ui.form.make_control({
                 df: {
-                    fieldtype: "Link", options: "Customer", placeholder: "Search Customer...",
+                    fieldtype: "Link", 
+                    options: "Customer", 
+                    placeholder: "Search Customer...",
                     onchange: function() {
                         if(this.value) {
                             selected_customer = this.value;
                             $(wrapper).find('#selected-customer-display').text("Customer: " + selected_customer);
+                            
+                            // FIX: Remove focus from the customer field so it returns to the body
+                            setTimeout(() => {
+                                if (document.activeElement) {
+                                    document.activeElement.blur();
+                                }
+                            }, 150);
                         }
                     }
                 },
