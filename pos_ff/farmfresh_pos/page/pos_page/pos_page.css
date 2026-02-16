@@ -1,0 +1,123 @@
+/* --- 1. Layout Fix for Auto-Adapt --- */
+/* Ensures the interface fills the screen height without double scrollbars */
+#pos-root {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#pos-interface {
+    flex: 1; /* Fills remaining height */
+    overflow: hidden; /* Important for inner scrollable areas */
+}
+
+/* --- 2. Table Management Polish --- */
+#table-picker-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85); z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(10px);
+}
+
+.picker-box { 
+    background: #fff; padding: 30px; border-radius: 24px; 
+    width: 90%; max-width: 950px; max-height: 90vh;
+    display: flex; flex-direction: column;
+}
+
+#table-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 15px;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+/* Table Card Statuses */
+.table-card {
+    aspect-ratio: 4 / 3; /* Keeps cards uniform */
+    color: white; border-radius: 16px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 1.2rem; font-weight: bold;
+    transition: all 0.2s ease;
+    border: 4px solid rgba(0,0,0,0.1);
+}
+
+.table-card:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.2); }
+
+/* Status Colors */
+.status-available { background-color: #28a745 !important; }
+.status-occupied  { background-color: #dc3545 !important; }
+.status-reserved  { background-color: #ffc107 !important; color: #2c3e50 !important; }
+.status-dirty     { background-color: #6c757d !important; }
+
+/* --- 3. Menu Grid Adaptive --- */
+.item-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    padding: 10px;
+    align-content: start;
+}
+
+/* --- 4. Cart Logic (Pinning Buttons to Bottom) --- */
+.cart-panel { 
+    display: flex; flex-direction: column; height: 100%;
+    border: none; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05) !important;
+}
+
+.cart-items-list { 
+    flex: 1; /* This pushes the total/buttons to the absolute bottom */
+    overflow-y: auto; 
+    padding: 10px; 
+}
+
+/* Custom Scrollbar for a Clean Look */
+.custom-scrollbar::-webkit-scrollbar { width: 5px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 10px; }
+
+/* Fired Item Styling (Already sent to kitchen) */
+.fired-item { background-color: #f8f9fa; opacity: 0.8; border-left: 3px solid #28a745; }
+
+.pos-menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 15px;
+    padding: 10px;
+}
+
+.menu-card-box {
+    background: #fff;
+    border: 1px solid #d1d8dd;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+}
+
+.menu-card-box:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.menu-card-image {
+    height: 100px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #f5f7f9;
+}
+
+.menu-card-content {
+    padding: 10px;
+    text-align: center;
+}
+
+.menu-card-content .item-name {
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+    color: #333;
+}

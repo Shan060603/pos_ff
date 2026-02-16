@@ -1,0 +1,104 @@
+<div id="pos-root" style="height: 100vh; overflow: hidden; background-color: #f4f7f6;">
+    
+    <div id="table-picker-overlay">
+        <div class="picker-box shadow-lg">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 class="fw-bold mb-0">Table Management</h3>
+                <div class="d-flex gap-3 small">
+                    <span class="badge badge-success">Available</span>
+                    <span class="badge badge-danger">Occupied</span>
+                    <span class="badge badge-warning text-dark">Reserved</span>
+                    <span class="badge badge-secondary">Dirty</span>
+                </div>
+                <button id="close-shift-btn" class="btn btn-outline-danger btn-sm fw-bold rounded-pill px-3 shadow-sm">
+                    <i class="fa fa-power-off me-1"></i> Close Shift
+                </button>
+            </div>
+
+            <div id="table-buttons" class="table-selection-grid">
+                </div>
+        </div>
+    </div>
+
+    <div id="pos-interface" style="display:none; height: 100vh; padding: 15px;">
+        <div class="container-fluid h-100">
+            <div class="row h-100">
+                <div class="col-md-8 d-flex flex-column h-100">
+                    <div class="pos-card bg-white p-3 rounded-4 shadow-sm h-100 d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex flex-column">
+                                <h3 class="mb-0 fw-bold">Menu</h3>
+                                <div id="branch-display">
+                                    <span id="branch-name" class="badge badge-info py-1 px-3">
+                                        <i class="fa fa-map-marker"></i> Loading...
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="text" id="menu-search" class="form-control form-control-sm rounded-pill" placeholder="🔍 Search..." style="width: 180px;">
+                                <button class="btn btn-sm btn-info rounded-pill" id="clear-table-btn">✅ Clear</button>
+                                <button class="btn btn-sm btn-outline-warning rounded-pill btn-move" id="transfer-table-btn">🔄 Move</button>
+                                <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="location.reload()">🏠</button>
+                            </div>
+                        </div>
+                        
+                        <div id="item-grid" class="item-grid flex-grow-1 overflow-auto custom-scrollbar">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 d-flex flex-column h-100">
+                    <div class="cart-panel card shadow-sm border-0 rounded-4 h-100 d-flex flex-column">
+                        <div class="card-body d-flex flex-column h-100 p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h4 class="card-title mb-0 fw-bold">Order Details</h4>
+                                <span id="pos-profile-badge" class="badge bg-light text-dark border"></span>
+                            </div>
+                            
+                            <div class="customer-section mb-3">
+                                <div class="input-group input-group-sm">
+                                    <input type="text" id="customer-search" class="form-control" placeholder="Search Customer...">
+                                </div>
+                                <div id="selected-customer-display" class="mt-2 small text-primary fw-bold">
+                                    <i class="fa fa-user"></i> Customer: Walk-in
+                                </div>
+                            </div>
+
+                            <hr class="my-2 opacity-50">
+                            
+                            <div id="cart-items" class="cart-items-list flex-grow-1 overflow-auto custom-scrollbar">
+                                <div class="text-muted text-center py-5">
+                                    <i class="fa fa-shopping-cart fa-2x mb-2 opacity-20"></i>
+                                    <p>Empty Order</p>
+                                </div>
+                            </div>
+                            
+                            <div class="cart-footer mt-auto pt-3 border-top">
+                                <div class="d-flex justify-content-between align-items-center h4 mb-3 fw-bold">
+                                    <span class="text-muted">Total:</span>
+                                    <span id="grand-total" class="text-success">0.00</span>
+                                </div>
+                                
+                                <div class="d-flex flex-column gap-2">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <button class="btn btn-primary btn-lg w-100 py-3 fw-bold shadow-sm" id="fire-kot">🔥 FIRE</button>
+                                        </div>
+                                        <div class="col-6">
+                                            <button class="btn btn-success btn-lg w-100 py-3 fw-bold shadow-sm" id="checkout-btn">💰 PAY</button>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-outline-info btn-block d-md-none mt-2" id="clear-table-mobile">
+                                        Clear Table
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

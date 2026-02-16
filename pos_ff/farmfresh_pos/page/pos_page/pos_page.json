@@ -1,0 +1,23 @@
+{
+ "content": null,
+ "creation": "2026-02-11 19:13:48.346261",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2026-02-11 19:13:48.346261",
+ "modified_by": "Administrator",
+ "module": "Farmfresh_POS",
+ "name": "pos_page",
+ "owner": "Administrator",
+ "page_name": "pos_page",
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Farmfresh POS"
+}
