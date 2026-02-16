@@ -1,5 +1,4 @@
 /* --- 1. Layout Fix for Auto-Adapt --- */
-/* Ensures the interface fills the screen height without double scrollbars */
 #pos-root {
     height: 100vh;
     display: flex;
@@ -7,8 +6,9 @@
 }
 
 #pos-interface {
-    flex: 1; /* Fills remaining height */
-    overflow: hidden; /* Important for inner scrollable areas */
+    flex: 1;
+    overflow: hidden;
+    display: flex; /* Ensures inner row takes full height */
 }
 
 /* --- 2. Table Management Polish --- */
@@ -33,9 +33,8 @@
     padding: 10px;
 }
 
-/* Table Card Statuses */
 .table-card {
-    aspect-ratio: 4 / 3; /* Keeps cards uniform */
+    aspect-ratio: 4 / 3;
     color: white; border-radius: 16px;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     cursor: pointer; font-size: 1.2rem; font-weight: bold;
@@ -51,7 +50,7 @@
 .status-reserved  { background-color: #ffc107 !important; color: #2c3e50 !important; }
 .status-dirty     { background-color: #6c757d !important; }
 
-/* --- 3. Menu Grid Adaptive --- */
+/* --- 3. Menu & Item Grid --- */
 .item-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -60,37 +59,10 @@
     align-content: start;
 }
 
-/* --- 4. Cart Logic (Pinning Buttons to Bottom) --- */
-.cart-panel { 
-    display: flex; flex-direction: column; height: 100%;
-    border: none; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05) !important;
-}
-
-.cart-items-list { 
-    flex: 1; /* This pushes the total/buttons to the absolute bottom */
-    overflow-y: auto; 
-    padding: 10px; 
-}
-
-/* Custom Scrollbar for a Clean Look */
-.custom-scrollbar::-webkit-scrollbar { width: 5px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 10px; }
-
-/* Fired Item Styling (Already sent to kitchen) */
-.fired-item { background-color: #f8f9fa; opacity: 0.8; border-left: 3px solid #28a745; }
-
-.pos-menu-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 15px;
-    padding: 10px;
-}
-
 .menu-card-box {
     background: #fff;
     border: 1px solid #d1d8dd;
-    border-radius: 8px;
+    border-radius: 12px;
     overflow: hidden;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
@@ -98,26 +70,56 @@
     flex-direction: column;
 }
 
-.menu-card-box:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-}
+.menu-card-box:hover { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
 
 .menu-card-image {
     height: 100px;
     background-size: cover;
     background-position: center;
-    background-repeat: no-repeat;
     background-color: #f5f7f9;
 }
 
-.menu-card-content {
-    padding: 10px;
-    text-align: center;
+.menu-card-content { padding: 10px; text-align: center; }
+.menu-card-content .item-name { font-size: 0.9rem; margin-bottom: 4px; color: #333; font-weight: 600; }
+
+/* --- 4. Cart & Transaction Styling --- */
+.cart-panel { 
+    display: flex; flex-direction: column; height: 100%;
+    border: none; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05) !important;
 }
 
-.menu-card-content .item-name {
-    font-size: 0.9rem;
-    margin-bottom: 4px;
-    color: #333;
+.cart-items-list { flex: 1; overflow-y: auto; padding: 10px; }
+
+.recent-order-row { transition: background 0.2s; cursor: pointer; }
+.recent-order-row:hover { background-color: #f0f4f8; }
+
+/* History/Reprint Buttons (Top of Cart) */
+#reprint-last-btn, #recent-orders-btn {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    border-radius: 10px;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #d1d8dd; border-radius: 10px; }
+
+/* Fired Item Styling */
+.fired-item { background-color: #f9fbf9; opacity: 0.85; border-left: 5px solid #28a745 !important; }
+
+/* --- 5. Mobile Responsiveness --- */
+@media (max-width: 768px) {
+    #pos-interface { padding: 8px; overflow-y: auto; display: block; }
+    .item-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+    .menu-card-image { height: 90px; }
+    .col-md-4, .col-md-8 { height: auto !important; margin-bottom: 15px; }
+}
+
+/* --- 6. Custom Receipt Print Overrides --- */
+/* This prevents the POS interface from printing when the receipt pops up */
+@media print {
+    #pos-root, .modal, .modal-backdrop {
+        display: none !important;
+    }
 }

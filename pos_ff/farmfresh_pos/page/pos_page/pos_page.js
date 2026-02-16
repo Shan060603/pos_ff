@@ -14,6 +14,7 @@ frappe.pages['pos_page'].on_page_load = function(wrapper) {
     let all_items = []; 
     let pos_profile = null; 
     let current_opening_entry = null;
+    let last_invoice_name = null; // To store for the "Reprint Last" button
 
     // --- 1. Shift Management & Initial Load ---
     function load_initial_data() {
@@ -65,12 +66,9 @@ frappe.pages['pos_page'].on_page_load = function(wrapper) {
         d.show();
     }
 
-    // --- NEW: Closing Shift Logic ---
-// --- Optimized: Closing Shift Logic with Summary ---
     function show_closing_dialog() {
         if (!current_opening_entry) return;
 
-        // Fetch current shift totals first to show the user what they are closing
         frappe.call({
             method: "frappe.client.get_list",
             args: {
@@ -106,7 +104,7 @@ frappe.pages['pos_page'].on_page_load = function(wrapper) {
                                     </div>
                                     <hr>
                                     <p class="small text-muted">
-                                        All Expected Amounts (Cash, Gcash, etc.) will be automatically set as your Actual Amounts.
+                                        All Expected Amounts will be automatically set as your Actual Amounts.
                                     </p>
                                 </div>
                             `
@@ -125,7 +123,6 @@ frappe.pages['pos_page'].on_page_load = function(wrapper) {
                                             message: __('Shift Closed & Totals Consolidated'), 
                                             indicator: 'blue'
                                         });
-                                        // Force a clean state for the next shift
                                         window.location.reload(); 
                                     }
                                 }
@@ -164,6 +161,14 @@ frappe.pages['pos_page'].on_page_load = function(wrapper) {
 
                 // --- UI Button Listeners ---
                 $(wrapper).find('#close-shift-btn').off('click').on('click', () => show_closing_dialog());
+                $(wrapper).find('#reprint-last-btn').off('click').on('click', () => {
+                    if (last_invoice_name) {
+                        frappe.pages['pos_page'].print_invoice(last_invoice_name);
+                    } else {
+                        frappe.show_alert({message: __('No recent transaction found'), indicator: 'orange'});
+                    }
+                });
+                $(wrapper).find('#recent-orders-btn').off('click').on('click', () => show_recent_orders_dialog());
                 
                 $(wrapper).find('#transfer-table-btn').off('click').on('click', function() {
                     if (!selected_table) return;
@@ -184,7 +189,131 @@ frappe.pages['pos_page'].on_page_load = function(wrapper) {
         });
     }
 
-    // --- 3. Customer & Table Logic ---
+    // --- 3. Printing Engine (Option A: Immediate Data) ---
+    
+    function get_receipt_template(invoice_name, items, total, paid, change, customer) {
+        const company_name = frappe.defaults.get_default("company") || "Farmfresh";
+        const date = frappe.datetime.now_datetime();
+        
+        let items_html = items.map(item => `
+            <tr>
+                <td style="padding: 5px 0; border-bottom: 1px solid #eee;">
+                    <div style="font-weight: bold;">${item.item_name}</div>
+                    <small>${item.qty} x ${format_currency(item.rate || item.price)}</small>
+                </td>
+                <td style="text-align: right; vertical-align: bottom; padding: 5px 0; border-bottom: 1px solid #eee;">
+                    ${format_currency((item.rate || item.price) * item.qty)}
+                </td>
+            </tr>
+        `).join('');
+
+        return `
+            <html>
+            <head>
+                <style>
+                    @page { margin: 0; }
+                    body { 
+                        font-family: 'Courier New', Courier, monospace; 
+                        width: 80mm; padding: 10px; margin: 0; font-size: 13px; line-height: 1.4; color: #000;
+                    }
+                    .text-center { text-align: center; }
+                    .text-right { text-align: right; }
+                    .border-top { border-top: 1px dashed #000; margin-top: 8px; padding-top: 8px; }
+                    .total-row { font-weight: bold; font-size: 15px; }
+                    table { width: 100%; border-collapse: collapse; }
+                </style>
+            </head>
+            <body onload="window.print(); window.close();">
+                <div class="text-center">
+                    <h2 style="margin: 0; text-transform: uppercase;">${company_name}</h2>
+                    <p style="margin: 5px 0;">Invoice: ${invoice_name}<br>Date: ${date}</p>
+                </div>
+                <div class="border-top"></div>
+                <table>${items_html}</table>
+                <div class="border-top"></div>
+                <table style="margin-top: 5px;">
+                    <tr class="total-row">
+                        <td>GRAND TOTAL</td>
+                        <td class="text-right">${format_currency(total)}</td>
+                    </tr>
+                    <tr>
+                        <td>Paid Amount</td>
+                        <td class="text-right">${format_currency(paid)}</td>
+                    </tr>
+                    <tr>
+                        <td>Change</td>
+                        <td class="text-right">${format_currency(change)}</td>
+                    </tr>
+                </table>
+                <div class="border-top" style="text-align: center; margin-top: 15px;">
+                    <p>Customer: ${customer}<br>Table: ${selected_table || 'N/A'}</p>
+                    <p>Thank you for your visit!<br>Please come again.</p>
+                    <small>System: Farmfresh POS</small>
+                </div>
+            </body>
+            </html>
+        `;
+    }
+
+    // Core print function: Immediate execution to bypass popup blockers
+    function print_immediate(name, items, total, paid, change, customer) {
+        const print_window = window.open('', '_blank', 'width=450,height=600');
+        const receipt_html = get_receipt_template(name, items, total, paid, change, customer);
+        print_window.document.write(receipt_html);
+        print_window.document.close();
+    }
+
+    // Attached to global page object for "onclick" access in dialogs/history
+    frappe.pages['pos_page'].print_invoice = function(invoice_name) {
+        if (!invoice_name) {
+            frappe.show_alert({message: __('No transaction found'), indicator: 'orange'});
+            return;
+        }
+
+        frappe.call({
+            method: "frappe.client.get",
+            args: { doctype: "POS Invoice", name: invoice_name },
+            callback: function(r) {
+                if (r.message) {
+                    print_immediate(
+                        r.message.name, 
+                        r.message.items, 
+                        r.message.grand_total, 
+                        r.message.paid_amount, 
+                        r.message.change_amount, 
+                        r.message.customer
+                    );
+                }
+            }
+        });
+    };
+
+    function show_recent_orders_dialog() {
+        frappe.call({
+            method: "pos_ff.api.get_recent_invoices",
+            callback: function(r) {
+                let items_html = (r.message || []).map(inv => `
+                    <div class="d-flex justify-content-between align-items-center p-3 border-bottom recent-order-row">
+                        <div>
+                            <div class="fw-bold">${inv.name}</div>
+                            <small class="text-muted">${inv.customer} | ${format_currency(inv.grand_total)}</small>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary" onclick="frappe.pages['pos_page'].print_invoice('${inv.name}')">
+                            <i class="fa fa-print"></i>
+                        </button>
+                    </div>
+                `).join('');
+
+                const d = new frappe.ui.Dialog({
+                    title: __('Recent Transactions'),
+                    fields: [{ fieldtype: 'HTML', options: `<div style="max-height: 400px; overflow-y: auto;">${items_html || 'No recent orders'}</div>` }]
+                });
+                d.show();
+            }
+        });
+    }
+
+    // --- 4. Customer & Table Logic ---
     function setup_customer_search() {
         let cust_search_box = $(wrapper).find('#customer-search');
         if (cust_search_box.length) {
@@ -287,7 +416,7 @@ frappe.pages['pos_page'].on_page_load = function(wrapper) {
         d.show();
     }
 
-    // --- 4. Menu & Cart Logic ---
+    // --- 5. Menu & Cart Logic ---
     function render_menu(items) {
         const container = $(wrapper).find('#item-grid');
         container.empty();
@@ -392,7 +521,7 @@ frappe.pages['pos_page'].on_page_load = function(wrapper) {
         });
     }
 
-    // --- 5. Final Actions (KOT & Checkout) ---
+    // --- 6. Final Actions (KOT & Checkout) ---
     $(wrapper).find('#fire-kot').on('click', function() {
         let new_items = cart.filter(i => !i.is_fired);
         if (!new_items.length) return;
@@ -426,13 +555,40 @@ frappe.pages['pos_page'].on_page_load = function(wrapper) {
             ],
             primary_action_label: 'Confirm Payment',
             primary_action(values) {
+                const received_amount = flt(values.paid);
+                const change_amount = received_amount - total;
+
                 frappe.call({
                     method: "pos_ff.api.create_invoice",
-                    args: { table: selected_table, mode_of_payment: values.mode, amount_paid: values.paid, customer: selected_customer },
-                    callback: () => {
-                        frappe.show_alert({message: __('Paid'), indicator: 'green'});
-                        cart = []; selected_table = null;
-                        $('#pos-interface').fadeOut(() => { $('#table-picker-overlay').fadeIn(); fetch_main_pos_data(); });
+                    args: { 
+                        table: selected_table, 
+                        mode_of_payment: values.mode, 
+                        amount_paid: received_amount, 
+                        customer: selected_customer 
+                    },
+                    callback: (r) => {
+                        if (r.message) {
+                            frappe.show_alert({message: __('Paid Successfully'), indicator: 'green'});
+                            
+                            last_invoice_name = r.message;
+
+                            // OPTION A: Print immediately using data already in memory
+                            print_immediate(
+                                r.message, 
+                                [...cart], 
+                                total, 
+                                received_amount, 
+                                change_amount, 
+                                selected_customer
+                            );
+
+                            cart = []; 
+                            selected_table = null;
+                            $('#pos-interface').fadeOut(() => { 
+                                $('#table-picker-overlay').fadeIn(); 
+                                fetch_main_pos_data(); 
+                            });
+                        }
                     }
                 });
                 d.hide();
@@ -447,21 +603,14 @@ frappe.pages['pos_page'].on_page_load = function(wrapper) {
         d.get_field('paid').$input.focus().select();
     });
 
-    // --- 6. Barcode Scanner Logic (AUTOMATED) ---
+    // --- 7. Barcode Scanner Logic ---
     let barcode_buffer = "";
     let barcode_timer = null;
 
     $(window).on('keypress', function(e) {
-        // Ignore if user is typing in an actual input field (like Search or Dialogs)
         if ($(e.target).is('input, textarea, select')) return;
-
-        // Clear timer on every keypress
         if (barcode_timer) clearTimeout(barcode_timer);
-
-        // Build the barcode string
         barcode_buffer += String.fromCharCode(e.which);
-
-        // 100ms delay: if no more keys are pressed, process the scan
         barcode_timer = setTimeout(() => {
             if (barcode_buffer.length >= 3) {
                 process_barcode(barcode_buffer.trim());
@@ -476,7 +625,6 @@ frappe.pages['pos_page'].on_page_load = function(wrapper) {
             args: { barcode: barcode },
             callback: function(r) {
                 if (r.message) {
-                    // Call your existing add_to_cart function
                     add_to_cart(r.message);
                     frappe.show_alert({
                         message: __(`${r.message.item_name} added to cart`), 

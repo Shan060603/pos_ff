@@ -163,7 +163,7 @@ def transfer_table(old_table, new_table):
     frappe.db.commit()
     return True
 
-# --- INVOICING ---
+# --- INVOICING & HISTORY ---
 
 @frappe.whitelist()
 def create_invoice(table, mode_of_payment="Cash", amount_paid=0, customer=None):
@@ -187,10 +187,7 @@ def create_invoice(table, mode_of_payment="Cash", amount_paid=0, customer=None):
     final_customer = customer or kots[0].customer_name or "Walk-in"
     
     invoice = frappe.new_doc("POS Invoice")
-    
-    # CRITICAL: Linking invoice to opening entry using the field you just added
     invoice.pos_opening_entry = opening_entry
-    
     invoice.customer = final_customer
     invoice.company = profile.company
     invoice.pos_profile = profile.name
@@ -233,17 +230,23 @@ def create_invoice(table, mode_of_payment="Cash", amount_paid=0, customer=None):
     invoice.insert()
     invoice.submit()
 
-    # Double-check the link persists after submission
     frappe.db.set_value("POS Invoice", invoice.name, "pos_opening_entry", opening_entry)
 
-    # --- POST-INVOICE CLEANUP ---
     for k in kots:
         frappe.db.set_value("Kitchen Order Ticket", k.name, "docstatus", 1)
     
     frappe.db.commit()
     return invoice.name
 
-# --- CLOSING LOGIC ---
+@frappe.whitelist()
+def get_recent_invoices():
+    profile = get_assigned_pos_profile()
+    return frappe.db.sql("""
+        SELECT name, customer, grand_total, creation
+        FROM `tabPOS Invoice`
+        WHERE docstatus = 1 AND pos_profile = %s
+        ORDER BY creation DESC LIMIT 10
+    """, (profile.name,), as_dict=1)
 
 # --- CLOSING LOGIC ---
 
@@ -251,7 +254,6 @@ def create_invoice(table, mode_of_payment="Cash", amount_paid=0, customer=None):
 def close_pos_opening_entry(opening_entry):
     opening_doc = frappe.get_doc("POS Opening Entry", opening_entry)
     
-    # 1. Fetch all SUBMITTED invoices linked to this shift
     invoices = frappe.get_all("POS Invoice", 
         filters={"pos_opening_entry": opening_entry, "docstatus": 1},
         fields=["name", "grand_total", "net_total", "total_qty", "posting_date"]
@@ -260,7 +262,6 @@ def close_pos_opening_entry(opening_entry):
     if not invoices:
         frappe.throw(_("No submitted invoices found for this shift."))
 
-    # 2. Create the Closing Entry
     closing_doc = frappe.new_doc("POS Closing Entry")
     closing_doc.pos_opening_entry = opening_entry
     closing_doc.pos_profile = opening_doc.pos_profile
@@ -269,7 +270,6 @@ def close_pos_opening_entry(opening_entry):
     closing_doc.period_start_date = opening_doc.period_start_date
     closing_doc.period_end_date = now_datetime()
 
-    # 3. Populate Linked Invoices
     for inv in invoices:
         closing_doc.append("pos_transactions", {
             "pos_invoice": inv.name,
@@ -277,10 +277,8 @@ def close_pos_opening_entry(opening_entry):
             "posting_date": inv.posting_date
         })
 
-    # 4. Map Opening Amounts from Opening Entry to a dictionary
     opening_amounts = {d.mode_of_payment: d.opening_amount for d in opening_doc.balance_details}
 
-    # 5. Aggregate Payments (Cash, Gcash, etc.)
     payment_data = frappe.db.sql("""
         SELECT p.mode_of_payment, SUM(p.amount) as total_amount
         FROM `tabSales Invoice Payment` p
@@ -289,20 +287,17 @@ def close_pos_opening_entry(opening_entry):
         GROUP BY p.mode_of_payment
     """, (opening_entry), as_dict=1)
 
-    # 6. Populate Payment Reconciliation (Fixes the "Value Missing" Error)
     for pay in payment_data:
         mop = pay.mode_of_payment
-        # We fetch the opening amount for this specific MOP, or default to 0
         opening_amt = flt(opening_amounts.get(mop, 0))
         
         closing_doc.append("payment_reconciliation", {
             "mode_of_payment": mop,
-            "opening_amount": opening_amt,         # REQUIRED FIELD
+            "opening_amount": opening_amt,
             "expected_amount": opening_amt + flt(pay.total_amount),
             "closing_amount": opening_amt + flt(pay.total_amount)
         })
 
-    # 7. Finalize totals
     closing_doc.grand_total = sum(inv.grand_total for inv in invoices)
     closing_doc.net_total = sum(inv.net_total for inv in invoices)
     closing_doc.total_quantity = sum(inv.total_qty for inv in invoices)
@@ -312,23 +307,18 @@ def close_pos_opening_entry(opening_entry):
     
     return closing_doc.name
 
-    # 8. Barcode
-
-# 8. Barcode
+# --- BARCODE ---
 
 @frappe.whitelist()
 def get_item_by_barcode(barcode):
-    # Search in the Item Barcode child table first
     item_code = frappe.db.get_value("Item Barcode", {"barcode": barcode}, "parent")
     
-    # If not found in barcodes, check if the barcode matches an Item Code directly
     if not item_code:
         if frappe.db.exists("Item", barcode):
             item_code = barcode
 
     if item_code:
         profile = get_assigned_pos_profile()
-        # Fetch item details including image and price from the specific price list
         item_data = frappe.db.sql("""
             SELECT 
                 i.item_code, i.item_name, i.image,
