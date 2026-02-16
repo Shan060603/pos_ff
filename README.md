@@ -49,7 +49,7 @@ Before using the app, ensure the following Doctypes and fields are created:
 
 1. **Get the app from GitHub:**
     ```bash
-    bench get-app [https://github.com/Shan060603/pos_ff.git](https://github.com/Shan060603/pos_ff.git)
+    bench get-app https://github.com/Shan060603/pos_ff.git
     ```
 
 2. **Install the app on your site:**
