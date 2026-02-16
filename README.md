@@ -1,33 +1,31 @@
-### Farmfresh_POS
+# Farmfresh POS (pos_ff)
 
-this is a custom app for farmfresh
+A custom ERPNext POS app designed for a seamless, fast retail and restaurant experience.
 
-### Installation
+## Key Features
+* **Auto-Adapt UI**: Responsive interface that adapts to any screen size (Mobile, Tablet, Desktop).
+* **Automated Barcode Scanning**: High-speed scanning logic that adds items to the cart automatically without needing to press "Enter".
+* **Restaurant Ready**: Includes Table Management, KOT (Kitchen Order Ticket) firing, and Table Transfers.
+* **Shift Management**: Robust Opening and Closing shift logic with automated reconciliation to prevent balance discrepancies.
 
-You can install this app using the [bench](https://github.com/frappe/bench) CLI:
+## Installation
 
-```bash
-cd $PATH_TO_YOUR_BENCH
-bench get-app $URL_OF_THIS_REPO --branch develop
-bench install-app pos_ff
-```
+1.  **Get the app from GitHub:**
+    ```bash
+    bench get-app [https://github.com/Shan060603/pos_ff.git](https://github.com/Shan060603/pos_ff.git)
+    ```
 
-### Contributing
+2.  **Install the app on your site:**
+    ```bash
+    bench --site [your-site-name] install-app pos_ff
+    ```
 
-This app uses `pre-commit` for code formatting and linting. Please [install pre-commit](https://pre-commit.com/#installation) and enable it for this repository:
+3.  **Migrate and Build:**
+    ```bash
+    bench migrate
+    bench build
+    ```
 
-```bash
-cd apps/pos_ff
-pre-commit install
-```
-
-Pre-commit is configured to use the following tools for checking and formatting your code:
-
-- ruff
-- eslint
-- prettier
-- pyupgrade
-
-### License
-
-mit
+## Configuration
+* Ensure **Item Barcodes** are maintained in the Item Master.
+* The scanner expects a high-speed input (100ms threshold).
