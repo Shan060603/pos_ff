@@ -192,7 +192,8 @@ frappe.pages['pos_page'].on_page_load = function(wrapper) {
     // --- 3. Printing Engine (Option A: Immediate Data) ---
     
     function get_receipt_template(invoice_name, items, total, paid, change, customer) {
-        const company_name = frappe.defaults.get_default("company") || "Farmfresh";
+        // Automatically fetch company from profile, fallback to Global Default, then "Restaurant"
+        const company_name = pos_profile.company || frappe.defaults.get_default("company") || "Restaurant";
         const date = frappe.datetime.now_datetime();
         
         let items_html = items.map(item => `
@@ -248,7 +249,6 @@ frappe.pages['pos_page'].on_page_load = function(wrapper) {
                 <div class="border-top" style="text-align: center; margin-top: 15px;">
                     <p>Customer: ${customer}<br>Table: ${selected_table || 'N/A'}</p>
                     <p>Thank you for your visit!<br>Please come again.</p>
-                    <small>System: Farmfresh POS</small>
                 </div>
             </body>
             </html>
@@ -327,7 +327,7 @@ frappe.pages['pos_page'].on_page_load = function(wrapper) {
                             selected_customer = this.value;
                             $(wrapper).find('#selected-customer-display').text("Customer: " + selected_customer);
                             
-                            // FIX: Remove focus from the customer field so it returns to the body
+                            // Return focus to body after selection
                             setTimeout(() => {
                                 if (document.activeElement) {
                                     document.activeElement.blur();
